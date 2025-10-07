@@ -1,0 +1,33 @@
+{
+  "name": "pir-tasks-executor",
+  "version": "1.0.0",
+  "description": "PIR Manchester SP - Task Executor usando Cloudflare Workers AI",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "build": "tsc",
+    "test": "vitest",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "pir",
+    "voither",
+    "manchester-triage",
+    "cloudflare-workers",
+    "tasks",
+    "workflow"
+  ],
+  "author": "Voither Team",
+  "license": "MIT",
+  "dependencies": {
+    "@cloudflare/ai": "^1.0.50",
+    "@cloudflare/workers-types": "^4.20240919.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "wrangler": "^3.78.0",
+    "vitest": "^1.0.4"
+  }
+}

@@ -1,0 +1,45 @@
+# Cloudflare Worker Configuration - HealthOS Slot Extractor
+
+name = "healthos-slot-extractor"
+main = "src/index.ts"
+compatibility_date = "2024-03-01"
+workers_dev = true
+
+# Account ID (substituir pelo seu)
+account_id = "YOUR_CLOUDFLARE_ACCOUNT_ID"
+
+# Workers AI binding
+[ai]
+binding = "AI"
+
+# KV Namespace para sessões
+[[kv_namespaces]]
+binding = "SESSIONS_KV"
+id = "YOUR_KV_NAMESPACE_ID"
+
+# Environment variables
+[vars]
+ENVIRONMENT = "production"
+LOG_LEVEL = "info"
+
+# Secrets (definir via wrangler secret put)
+# ANTHROPIC_API_KEY - Claude API key (opcional, para fallback)
+
+# Limites
+[limits]
+cpu_ms = 50000  # 50 segundos (extração paralela pode ser intensiva)
+
+# Routes (deploy para custom domain)
+# routes = [
+#   { pattern = "healthos.voither.com/*", zone_name = "voither.com" }
+# ]
+
+# Build configuration
+[build]
+command = "npm run build"
+
+# Durable Objects (futuro: sessões persistentes)
+# [[durable_objects.bindings]]
+# name = "TRIAGE_SESSIONS"
+# class_name = "TriageSession"
+# script_name = "healthos-slot-extractor"

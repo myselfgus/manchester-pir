@@ -1,0 +1,1601 @@
+{
+  "protocol_id": "manchester-sp-2024",
+  "protocol_name": "Sistema Manchester de Classificação de Risco - São Paulo",
+  "version": "2.0",
+  "jurisdiction": "Município de São Paulo - SMS",
+  "legal_reference": "Portaria SMS nº 82/2024 - 13 de março de 2024",
+  "effective_date": "2024-03-13",
+  "implementation_deadline": "120 dias após publicação",
+
+  "metadata": {
+    "description": "Protocolo oficial de classificação de risco para UPA, PS, PA e AMA da rede municipal de urgência e emergência de São Paulo",
+    "scope": "Hospitais, UPA, PA, PS, AMA 24h da rede municipal",
+    "target_population": "Pacientes adultos e pediátricos em serviços de urgência/emergência",
+    "language": "pt-BR",
+    "certification_required": "SMCR 2ª edição (enfermeiros classificadores)",
+    "created_at": "2025-10-07T01:56:00Z",
+    "compiled_by": "PIR Compiler v1.0"
+  },
+
+  "slots": [
+    {
+      "slot_id": "chief_complaint",
+      "name": "Queixa Principal",
+      "type": "conversational",
+      "data_type": "string",
+      "required": true,
+      "extraction": {
+        "patterns": [
+          "(?:estou|sinto|tenho)\\s+(?:com\\s+)?(.+?)(?:\\.|\\?|$)",
+          "(?:dor|problema|sintoma)\\s+(?:em|no|na|de)\\s+(.+?)(?:\\.|\\?|$)",
+          "(.+?)\\s+(?:há|faz)\\s+\\d+\\s+(?:dias?|horas?|minutos?)"
+        ],
+        "fallback_question": "Qual é o motivo principal da sua vinda ao serviço de emergência hoje?",
+        "context_window": "last_3_turns"
+      },
+      "validation": {
+        "min_length": 3,
+        "max_length": 500
+      },
+      "flowchart_mapping": {
+        "keywords": {
+          "dor_toracica": ["dor no peito", "dor torácica", "dor pré-cordial", "aperto no peito", "queimação no peito"],
+          "dispneia": ["falta de ar", "dificuldade respirar", "cansaço", "sufocamento"],
+          "cefaleia": ["dor de cabeça", "cefaleia", "enxaqueca"],
+          "trauma": ["batida", "queda", "acidente", "colisão", "agressão"],
+          "avc": ["fraqueza", "formigamento", "fala enrolada", "paralisia"],
+          "abdome_agudo": ["dor abdominal", "dor na barriga", "dor no abdômen"],
+          "febre": ["febre", "temperatura alta", "calor"],
+          "convulsao": ["convulsão", "ataque", "tremores"]
+        }
+      }
+    },
+    {
+      "slot_id": "pain_score",
+      "name": "Escala de Dor",
+      "type": "conversational",
+      "data_type": "integer",
+      "required": false,
+      "extraction": {
+        "patterns": [
+          "(?:dor|escala)\\s+(?:é|está)?\\s*(?:de)?\\s*(\\d{1,2})(?:/10)?",
+          "(\\d{1,2})\\s+(?:de|na)?\\s+dor",
+          "dor\\s+(?:nivel|nível)\\s+(\\d{1,2})"
+        ],
+        "fallback_question": "Numa escala de 0 a 10, sendo 0 sem dor e 10 a pior dor imaginável, qual o nível da sua dor?",
+        "auto_fill": "last_known(<5m)"
+      },
+      "validation": {
+        "min": 0,
+        "max": 10
+      },
+      "classification_impact": {
+        "severe_pain": ">=8",
+        "moderate_pain": "5-7",
+        "mild_pain": "1-4"
+      }
+    },
+    {
+      "slot_id": "temperature",
+      "name": "Temperatura Corporal",
+      "type": "device",
+      "data_type": "float",
+      "required": true,
+      "unit": "celsius",
+      "device": "thermometer",
+      "validation": {
+        "min": 32.0,
+        "max": 43.0
+      },
+      "classification_thresholds": {
+        "very_urgent": ">=41.0",
+        "urgent": "38.5-40.9",
+        "less_urgent": "37.5-38.4",
+        "normal": "36.0-37.4",
+        "hypothermia": "<35.0"
+      }
+    },
+    {
+      "slot_id": "heart_rate",
+      "name": "Frequência Cardíaca",
+      "type": "device",
+      "data_type": "integer",
+      "required": true,
+      "unit": "bpm",
+      "device": "monitor",
+      "validation": {
+        "min": 20,
+        "max": 250
+      },
+      "classification_thresholds": {
+        "bradycardia_severe": "<40",
+        "bradycardia": "40-50",
+        "normal": "51-100",
+        "tachycardia": "101-130",
+        "tachycardia_severe": ">130"
+      }
+    },
+    {
+      "slot_id": "blood_pressure",
+      "name": "Pressão Arterial",
+      "type": "device",
+      "data_type": "object",
+      "required": true,
+      "unit": "mmHg",
+      "device": "sphygmomanometer",
+      "structure": {
+        "systolic": "integer",
+        "diastolic": "integer"
+      },
+      "validation": {
+        "systolic": {"min": 50, "max": 300},
+        "diastolic": {"min": 30, "max": 200}
+      },
+      "classification_thresholds": {
+        "hypotension_severe": "systolic<80",
+        "hypotension": "systolic<90",
+        "hypertension": "systolic>180 OR diastolic>120",
+        "hypertension_emergency": "systolic>200 OR diastolic>130"
+      }
+    },
+    {
+      "slot_id": "oxygen_saturation",
+      "name": "Saturação de Oxigênio",
+      "type": "device",
+      "data_type": "integer",
+      "required": true,
+      "unit": "percent",
+      "device": "oximeter",
+      "validation": {
+        "min": 50,
+        "max": 100
+      },
+      "classification_thresholds": {
+        "critical": "<85",
+        "very_urgent": "85-89",
+        "urgent": "90-92",
+        "normal": ">=93"
+      }
+    },
+    {
+      "slot_id": "consciousness_level",
+      "name": "Nível de Consciência",
+      "type": "conversational",
+      "data_type": "enum",
+      "required": true,
+      "options": [
+        "alert",
+        "confused",
+        "responds_voice",
+        "responds_pain",
+        "unresponsive"
+      ],
+      "extraction": {
+        "patterns": [
+          "paciente\\s+(alerta|confuso|respondem?\\s+(?:à\\s+)?voz|respondem?\\s+(?:à\\s+)?dor|irresponsivo|inconsciente)",
+          "(consciente|semiconsciente|inconsciente)"
+        ],
+        "fallback_question": "Como está o nível de consciência do paciente? (Alerta, Confuso, Responde à voz, Responde à dor, Irresponsivo)",
+        "auto_assessment": true
+      },
+      "classification_impact": {
+        "emergent": ["unresponsive", "responds_pain"],
+        "very_urgent": ["confused", "responds_voice"]
+      }
+    },
+    {
+      "slot_id": "bleeding_present",
+      "name": "Presença de Hemorragia",
+      "type": "conversational",
+      "data_type": "boolean",
+      "required": true,
+      "extraction": {
+        "patterns": [
+          "(?:sangramento|hemorragia|sangrando|sangue)",
+          "(?:não\\s+)?(?:tem|apresenta|está)\\s+sangr(?:amento|ando)"
+        ],
+        "fallback_question": "O paciente apresenta sangramento visível?",
+        "auto_fill": "visual_inspection"
+      }
+    },
+    {
+      "slot_id": "bleeding_severity",
+      "name": "Gravidade da Hemorragia",
+      "type": "conversational",
+      "data_type": "enum",
+      "required": false,
+      "condition": "bleeding_present == true",
+      "options": [
+        "exsanguinating",
+        "uncontrollable_major",
+        "uncontrollable_minor",
+        "controllable"
+      ],
+      "extraction": {
+        "patterns": [
+          "sangramento\\s+(incontrolável|intenso|grave|severo|moderado|leve|controlado)",
+          "hemorragia\\s+(maciça|importante|moderada|leve)"
+        ],
+        "fallback_question": "Qual a intensidade do sangramento? (Exsanguinante, Incontrolável maior, Incontrolável menor, Controlável)"
+      },
+      "classification_impact": {
+        "emergent": ["exsanguinating"],
+        "very_urgent": ["uncontrollable_major"],
+        "urgent": ["uncontrollable_minor"]
+      }
+    },
+    {
+      "slot_id": "symptom_onset",
+      "name": "Início dos Sintomas",
+      "type": "conversational",
+      "data_type": "duration",
+      "required": true,
+      "extraction": {
+        "patterns": [
+          "(?:há|faz)\\s+(\\d+)\\s+(minutos?|horas?|dias?)",
+          "(\\d+)\\s+(minutos?|horas?|dias?)\\s+atrás",
+          "começou\\s+(?:há|faz)\\s+(\\d+)\\s+(minutos?|horas?|dias?)"
+        ],
+        "fallback_question": "Há quanto tempo começaram os sintomas?",
+        "context_window": "last_5_turns"
+      },
+      "validation": {
+        "max_value": 30,
+        "max_unit": "days"
+      }
+    },
+    {
+      "slot_id": "previous_medical_history",
+      "name": "História Médica Pregressa",
+      "type": "historical",
+      "data_type": "array",
+      "required": false,
+      "extraction": {
+        "patterns": [
+          "(?:tenho|tem|teve)\\s+(.+?)(?:há|faz)\\s+\\d+\\s+(?:anos?|meses?)",
+          "(?:sou|é)\\s+(diabético|hipertenso|cardíaco|asmático)",
+          "(?:faço|faz|toma)\\s+(?:uso|tratamento)\\s+(?:de|para)\\s+(.+)"
+        ],
+        "fallback_question": "Você tem alguma doença crônica ou condição médica conhecida?",
+        "auto_fill": "medical_records(<90d)"
+      },
+      "relevant_conditions": [
+        "diabetes",
+        "hipertensão",
+        "doença cardíaca",
+        "asma/DPOC",
+        "câncer",
+        "imunossupressão",
+        "gestação",
+        "epilepsia"
+      ]
+    },
+    {
+      "slot_id": "medications_in_use",
+      "name": "Medicações em Uso",
+      "type": "historical",
+      "data_type": "array",
+      "required": false,
+      "extraction": {
+        "patterns": [
+          "(?:tomo|toma|uso|usa)\\s+(.+?)(?:há|faz|todos?\\s+os?\\s+dias?)",
+          "medicação:\\s*(.+)",
+          "remédios?:\\s*(.+)"
+        ],
+        "fallback_question": "Você faz uso de alguma medicação regularmente?",
+        "auto_fill": "prescription_history(<90d)"
+      }
+    },
+    {
+      "slot_id": "allergy_history",
+      "name": "Histórico de Alergias",
+      "type": "historical",
+      "data_type": "array",
+      "required": true,
+      "extraction": {
+        "patterns": [
+          "(?:alérgico|alergia)\\s+(?:a|à)\\s+(.+)",
+          "não\\s+(?:tenho|tem)\\s+alergia",
+          "sem\\s+alergia"
+        ],
+        "fallback_question": "Você tem alergia a algum medicamento ou substância?",
+        "auto_fill": "allergy_records"
+      },
+      "validation": {
+        "critical_check": true,
+        "confirm_if_empty": true
+      }
+    },
+    {
+      "slot_id": "glucose_level",
+      "name": "Glicemia Capilar",
+      "type": "device",
+      "data_type": "integer",
+      "required": false,
+      "condition": "diabetes_suspected OR consciousness_altered",
+      "unit": "mg/dL",
+      "device": "glucometer",
+      "validation": {
+        "min": 10,
+        "max": 800
+      },
+      "classification_thresholds": {
+        "hypoglycemia_severe": "<50",
+        "hypoglycemia": "50-70",
+        "hyperglycemia": ">250",
+        "hyperglycemia_severe": ">400"
+      }
+    },
+    {
+      "slot_id": "trauma_mechanism",
+      "name": "Mecanismo do Trauma",
+      "type": "conversational",
+      "data_type": "enum",
+      "required": false,
+      "condition": "chief_complaint CONTAINS trauma_keywords",
+      "options": [
+        "high_energy_collision",
+        "fall_from_height",
+        "pedestrian_struck",
+        "penetrating_injury",
+        "low_energy_mechanism"
+      ],
+      "extraction": {
+        "patterns": [
+          "acidente\\s+(?:de\\s+)?(?:carro|moto|trânsito)",
+          "queda\\s+de\\s+(?:altura|escada|telhado)",
+          "atropelamento",
+          "(?:facada|tiro|ferimento\\s+penetrante)",
+          "queda\\s+(?:da\\s+própria\\s+altura|no\\s+chão)"
+        ],
+        "fallback_question": "Como ocorreu o trauma? Descreva o mecanismo."
+      },
+      "classification_impact": {
+        "very_urgent": ["high_energy_collision", "fall_from_height", "pedestrian_struck", "penetrating_injury"]
+      }
+    },
+    {
+      "slot_id": "neurological_deficit",
+      "name": "Déficit Neurológico Recente",
+      "type": "conversational",
+      "data_type": "object",
+      "required": false,
+      "condition": "avc_suspected",
+      "structure": {
+        "facial_droop": "boolean",
+        "arm_weakness": "boolean",
+        "speech_difficulty": "boolean",
+        "onset_time": "duration"
+      },
+      "extraction": {
+        "patterns": [
+          "(?:fraqueza|paralisia)\\s+(?:no|em|do)\\s+(braço|perna|face)",
+          "(?:fala|falar)\\s+(?:enrolad[ao]|difícil|arrastada)",
+          "(?:boca|rosto)\\s+torto"
+        ],
+        "fallback_question": "O paciente apresenta fraqueza em algum membro, desvio de face ou dificuldade na fala? Quando iniciou?",
+        "protocol": "FAST (Face-Arm-Speech-Time)"
+      },
+      "classification_impact": {
+        "emergent": "onset_time < 4.5h",
+        "very_urgent": "any_deficit_present"
+      }
+    },
+    {
+      "slot_id": "sepsis_criteria",
+      "name": "Critérios de Sepse",
+      "type": "computed",
+      "data_type": "object",
+      "required": false,
+      "computation": {
+        "rule": "qSOFA_score",
+        "inputs": ["blood_pressure", "consciousness_level", "respiratory_rate"]
+      },
+      "structure": {
+        "qSOFA_score": "integer",
+        "infection_suspected": "boolean",
+        "sepsis_alert": "boolean"
+      },
+      "classification_impact": {
+        "very_urgent": "qSOFA_score >= 2 AND infection_suspected"
+      }
+    },
+    {
+      "slot_id": "respiratory_rate",
+      "name": "Frequência Respiratória",
+      "type": "device",
+      "data_type": "integer",
+      "required": true,
+      "unit": "irpm",
+      "validation": {
+        "min": 4,
+        "max": 60
+      },
+      "classification_thresholds": {
+        "bradypnea_severe": "<8",
+        "bradypnea": "8-10",
+        "tachypnea": "22-30",
+        "tachypnea_severe": ">30"
+      }
+    },
+    {
+      "slot_id": "chest_pain_characteristics",
+      "name": "Características da Dor Torácica",
+      "type": "conversational",
+      "data_type": "object",
+      "required": false,
+      "condition": "chief_complaint == dor_toracica",
+      "structure": {
+        "precordial": "boolean",
+        "pleuritic": "boolean",
+        "radiating": "boolean",
+        "associated_dyspnea": "boolean",
+        "associated_sweating": "boolean",
+        "onset_exertion": "boolean"
+      },
+      "extraction": {
+        "patterns": [
+          "dor\\s+(?:no\\s+)?(?:peito|tórax|coração)",
+          "dor\\s+(?:irradia|vai)\\s+(?:para|pro)\\s+(braço|costas|mandíbula)",
+          "dor\\s+(?:ao\\s+respirar|respiratória|pleurítica)",
+          "(?:suor|sudorese|transpiração)",
+          "(?:começou|iniciou)\\s+(?:ao|durante|após)\\s+(?:esforço|exercício|caminhada)"
+        ],
+        "fallback_question": "Como é a dor no peito? Irradia para algum lugar? Está acompanhada de falta de ar ou suor?"
+      },
+      "classification_impact": {
+        "very_urgent": "precordial OR radiating OR associated_sweating"
+      }
+    }
+  ],
+
+  "tasks": [
+    {
+      "task_id": "initial_triage_assessment",
+      "name": "Avaliação Inicial de Triagem",
+      "type": "local_inference",
+      "description": "Coleta inicial de dados vitais e queixa principal do paciente",
+      "execution": {
+        "local": true,
+        "sync": false,
+        "timeout": "5m"
+      },
+      "inputs": [
+        "chief_complaint",
+        "temperature",
+        "heart_rate",
+        "blood_pressure",
+        "oxygen_saturation",
+        "consciousness_level"
+      ],
+      "outputs": [
+        "initial_discriminators",
+        "suggested_flowchart"
+      ],
+      "fallback": {
+        "on_timeout": "escalate_to_nurse",
+        "on_error": "manual_triage"
+      }
+    },
+    {
+      "task_id": "flowchart_selection",
+      "name": "Seleção do Fluxograma Apropriado",
+      "type": "llm_reasoning",
+      "description": "Determina qual dos 52 fluxogramas Manchester aplicar baseado na queixa principal",
+      "execution": {
+        "local": true,
+        "sync": false,
+        "model": "claude-3-haiku",
+        "max_tokens": 500
+      },
+      "inputs": [
+        "chief_complaint",
+        "initial_discriminators"
+      ],
+      "outputs": [
+        "selected_flowchart",
+        "reasoning"
+      ],
+      "prompt_template": "Com base na queixa '{chief_complaint}' e nos discriminadores iniciais {initial_discriminators}, selecione o fluxograma Manchester mais apropriado entre os 52 disponíveis. Retorne o nome do fluxograma e justificativa.",
+      "fallback": {
+        "on_error": "default_to_indisposicao_adulto"
+      }
+    },
+    {
+      "task_id": "apply_general_discriminators",
+      "name": "Aplicar Discriminadores Gerais",
+      "type": "local_inference",
+      "description": "Avalia discriminadores gerais: risco de morte, dor, hemorragia, consciência, temperatura, agravamento",
+      "execution": {
+        "local": true,
+        "sync": false,
+        "timeout": "2m"
+      },
+      "inputs": [
+        "consciousness_level",
+        "pain_score",
+        "bleeding_present",
+        "bleeding_severity",
+        "temperature",
+        "oxygen_saturation",
+        "symptom_onset"
+      ],
+      "outputs": [
+        "general_discriminator_score",
+        "highest_priority_discriminator"
+      ],
+      "rules": [
+        {
+          "if": "consciousness_level IN ['unresponsive', 'responds_pain']",
+          "then": "priority = EMERGENT",
+          "discriminator": "risco_de_morte"
+        },
+        {
+          "if": "bleeding_severity == 'exsanguinating'",
+          "then": "priority = EMERGENT",
+          "discriminator": "hemorragia"
+        },
+        {
+          "if": "pain_score >= 8",
+          "then": "priority = VERY_URGENT",
+          "discriminator": "dor_severa"
+        },
+        {
+          "if": "temperature >= 41.0",
+          "then": "priority = VERY_URGENT",
+          "discriminator": "temperatura"
+        },
+        {
+          "if": "oxygen_saturation < 85",
+          "then": "priority = EMERGENT",
+          "discriminator": "risco_de_morte"
+        }
+      ]
+    },
+    {
+      "task_id": "apply_specific_discriminators",
+      "name": "Aplicar Discriminadores Específicos",
+      "type": "local_inference",
+      "description": "Avalia discriminadores específicos do fluxograma selecionado",
+      "execution": {
+        "local": true,
+        "sync": false,
+        "timeout": "3m"
+      },
+      "inputs": [
+        "selected_flowchart",
+        "all_collected_slots"
+      ],
+      "outputs": [
+        "specific_discriminator_matches",
+        "flowchart_priority"
+      ],
+      "flowchart_rules": {
+        "dor_toracica": [
+          {
+            "if": "chest_pain_characteristics.precordial AND chest_pain_characteristics.associated_sweating",
+            "then": "priority = VERY_URGENT",
+            "discriminator": "dor_cardiaca_suspeita"
+          }
+        ],
+        "dispneia": [
+          {
+            "if": "oxygen_saturation < 90",
+            "then": "priority = VERY_URGENT",
+            "discriminator": "insuficiencia_respiratoria"
+          }
+        ],
+        "trauma": [
+          {
+            "if": "trauma_mechanism IN ['high_energy_collision', 'fall_from_height', 'penetrating_injury']",
+            "then": "priority = VERY_URGENT",
+            "discriminator": "mecanismo_maior"
+          }
+        ],
+        "avc": [
+          {
+            "if": "neurological_deficit.onset_time < 4.5h AND any_deficit_present",
+            "then": "priority = EMERGENT",
+            "discriminator": "janela_trombolise"
+          }
+        ]
+      }
+    },
+    {
+      "task_id": "priority_classification",
+      "name": "Classificação de Prioridade Final",
+      "type": "local_inference",
+      "description": "Determina a categoria de prioridade final (vermelho/laranja/amarelo/verde/azul)",
+      "execution": {
+        "local": true,
+        "sync": false,
+        "timeout": "1m"
+      },
+      "inputs": [
+        "general_discriminator_score",
+        "specific_discriminator_matches"
+      ],
+      "outputs": [
+        "final_priority_color",
+        "final_priority_time",
+        "classification_reasoning"
+      ],
+      "logic": {
+        "rule": "highest_priority_wins",
+        "categories": {
+          "RED": {
+            "color": "vermelho",
+            "time_limit": "imediato",
+            "code": "1"
+          },
+          "ORANGE": {
+            "color": "laranja",
+            "time_limit": "10min",
+            "code": "2"
+          },
+          "YELLOW": {
+            "color": "amarelo",
+            "time_limit": "60min",
+            "code": "3"
+          },
+          "GREEN": {
+            "color": "verde",
+            "time_limit": "120min",
+            "code": "4"
+          },
+          "BLUE": {
+            "color": "azul",
+            "time_limit": "240min",
+            "code": "5"
+          }
+        }
+      }
+    },
+    {
+      "task_id": "assign_wristband",
+      "name": "Atribuir Pulseira de Classificação",
+      "type": "local_inference",
+      "description": "Gera instrução para aplicação de pulseira colorida conforme classificação",
+      "execution": {
+        "local": true,
+        "sync": false,
+        "timeout": "30s"
+      },
+      "inputs": [
+        "final_priority_color"
+      ],
+      "outputs": [
+        "wristband_instruction",
+        "patient_identification"
+      ],
+      "reversible": false
+    },
+    {
+      "task_id": "record_classification",
+      "name": "Registrar Classificação em Prontuário",
+      "type": "api_call",
+      "description": "Registra a classificação de risco no sistema de prontuário eletrônico",
+      "execution": {
+        "local": false,
+        "sync": true,
+        "timeout": "10s",
+        "endpoint": "/api/medical-records/triage",
+        "method": "POST"
+      },
+      "inputs": [
+        "patient_id",
+        "final_priority_color",
+        "classification_reasoning",
+        "nurse_identifier",
+        "timestamp"
+      ],
+      "outputs": [
+        "record_id",
+        "confirmation"
+      ],
+      "required_by_regulation": true,
+      "legal_reference": "Portaria SMS 82/2024",
+      "fallback": {
+        "on_error": "manual_paper_record"
+      }
+    },
+    {
+      "task_id": "activate_priority_flow_chest_pain",
+      "name": "Ativar Fluxo Prioritário - Dor Torácica",
+      "type": "distributed",
+      "description": "Ativa protocolo específico para suspeita de IAM com ECG em até 10 minutos",
+      "execution": {
+        "local": false,
+        "sync": true,
+        "distributed_nodes": ["ecg_team", "cardiology_on_call"]
+      },
+      "condition": "selected_flowchart == 'dor_toracica' AND final_priority_color IN ['RED', 'ORANGE']",
+      "inputs": [
+        "patient_id",
+        "classification_time"
+      ],
+      "outputs": [
+        "ecg_scheduled",
+        "cardiology_alerted",
+        "troponin_ordered"
+      ],
+      "deadlines": {
+        "ecg_completion": "10m",
+        "troponin_result": "60m"
+      }
+    },
+    {
+      "task_id": "activate_priority_flow_stroke",
+      "name": "Ativar Fluxo Prioritário - AVC",
+      "type": "distributed",
+      "description": "Ativa código AVC para possível trombólise",
+      "execution": {
+        "local": false,
+        "sync": true,
+        "distributed_nodes": ["neurology_team", "imaging", "lab"]
+      },
+      "condition": "selected_flowchart == 'avc' AND neurological_deficit.onset_time < 4.5h",
+      "inputs": [
+        "patient_id",
+        "symptom_onset_time",
+        "neurological_deficit"
+      ],
+      "outputs": [
+        "stroke_code_activated",
+        "ct_scheduled",
+        "neurology_team_alerted"
+      ],
+      "deadlines": {
+        "ct_completion": "25m",
+        "door_to_needle": "60m"
+      }
+    },
+    {
+      "task_id": "activate_priority_flow_sepsis",
+      "name": "Ativar Fluxo Prioritário - Sepse",
+      "type": "distributed",
+      "description": "Ativa protocolo sepse com bundle de 1 hora",
+      "execution": {
+        "local": false,
+        "sync": true,
+        "distributed_nodes": ["lab", "pharmacy", "physician"]
+      },
+      "condition": "sepsis_criteria.qSOFA_score >= 2 AND sepsis_criteria.infection_suspected",
+      "inputs": [
+        "patient_id",
+        "qSOFA_score",
+        "suspected_source"
+      ],
+      "outputs": [
+        "sepsis_bundle_initiated",
+        "lactate_ordered",
+        "blood_cultures_ordered",
+        "antibiotics_ordered"
+      ],
+      "deadlines": {
+        "lactate_result": "30m",
+        "antibiotic_administration": "60m",
+        "fluid_resuscitation": "60m"
+      }
+    },
+    {
+      "task_id": "activate_priority_flow_trauma",
+      "name": "Ativar Fluxo Prioritário - Trauma",
+      "type": "distributed",
+      "description": "Ativa protocolo trauma com avaliação ATLS",
+      "execution": {
+        "local": false,
+        "sync": true,
+        "distributed_nodes": ["trauma_team", "imaging", "surgery"]
+      },
+      "condition": "selected_flowchart == 'trauma' AND trauma_mechanism IN ['high_energy_collision', 'fall_from_height', 'penetrating_injury']",
+      "inputs": [
+        "patient_id",
+        "trauma_mechanism",
+        "vital_signs"
+      ],
+      "outputs": [
+        "trauma_team_activated",
+        "fast_exam_scheduled",
+        "trauma_bay_prepared"
+      ],
+      "deadlines": {
+        "primary_survey": "5m",
+        "fast_exam": "15m"
+      }
+    },
+    {
+      "task_id": "queue_management",
+      "name": "Gerenciamento de Fila",
+      "type": "distributed",
+      "description": "Atualiza fila de atendimento e notifica médicos disponíveis",
+      "execution": {
+        "local": false,
+        "sync": true,
+        "distributed_nodes": ["queue_system", "physician_panel"]
+      },
+      "inputs": [
+        "patient_id",
+        "final_priority_color",
+        "final_priority_time",
+        "arrival_time"
+      ],
+      "outputs": [
+        "queue_position",
+        "estimated_wait_time",
+        "physician_notified"
+      ],
+      "real_time_update": true
+    },
+    {
+      "task_id": "patient_monitoring",
+      "name": "Monitoramento Contínuo na Fila",
+      "type": "local_inference",
+      "description": "Reavalia pacientes aguardando atendimento para detectar agravamento",
+      "execution": {
+        "local": true,
+        "sync": false,
+        "periodic": true,
+        "interval": "15m"
+      },
+      "inputs": [
+        "patient_id",
+        "current_priority",
+        "time_in_queue"
+      ],
+      "outputs": [
+        "deterioration_detected",
+        "reclassification_needed"
+      ],
+      "triggers": {
+        "nurse_reassessment": "symptom_change_reported",
+        "automatic_escalation": "time_exceeded_by_20_percent"
+      }
+    }
+  ],
+
+  "guards": [
+    {
+      "guard_id": "sepsis_early_detection",
+      "name": "Detecção Precoce de Sepse",
+      "type": "predictive",
+      "description": "Sugere investigação de sepse quando critérios qSOFA presentes",
+      "trigger": {
+        "condition": "qSOFA_score >= 2 OR (temperature > 38.5 AND heart_rate > 100)"
+      },
+      "action": {
+        "type": "suggest",
+        "message": "⚠️ ATENÇÃO: Paciente apresenta critérios sugestivos de sepse (qSOFA ≥2). Considere ativação do protocolo sepse e investigação de foco infeccioso.",
+        "show_reasoning": true,
+        "reasoning": "qSOFA ≥2 pontos indica disfunção orgânica associada a infecção, com mortalidade >10%. Protocolo sepse deve ser iniciado em até 1 hora.",
+        "override_allowed": true,
+        "log_override": true
+      },
+      "escalation": {
+        "if_ignored": "notify_senior_physician",
+        "after": "15m"
+      }
+    },
+    {
+      "guard_id": "stroke_time_window",
+      "name": "Janela Terapêutica AVC",
+      "type": "predictive",
+      "description": "Alerta sobre janela de trombólise em casos de AVC",
+      "trigger": {
+        "condition": "neurological_deficit_present AND symptom_onset < 4.5h"
+      },
+      "action": {
+        "type": "suggest",
+        "message": "🧠 CÓDIGO AVC: Paciente em janela de trombólise (<4.5h). Tempo restante: {remaining_time}. Ativar protocolo AVC imediatamente.",
+        "show_reasoning": true,
+        "reasoning": "Janela terapêutica para trombólise em AVC isquêmico é de 4,5 horas. Cada minuto perdido reduz chances de recuperação funcional.",
+        "priority": "critical",
+        "override_allowed": false
+      },
+      "countdown_timer": true,
+      "auto_activate": "stroke_protocol"
+    },
+    {
+      "guard_id": "cardiac_ischemia_alert",
+      "name": "Alerta de Isquemia Cardíaca",
+      "type": "predictive",
+      "description": "Sugere investigação cardíaca em dor torácica suspeita",
+      "trigger": {
+        "condition": "chest_pain_characteristics.precordial AND (chest_pain_characteristics.radiating OR chest_pain_characteristics.associated_sweating)"
+      },
+      "action": {
+        "type": "suggest",
+        "message": "❤️ SUSPEITA DE IAM: Dor torácica com características isquêmicas. ECG em até 10 minutos e dosagem de troponina recomendados.",
+        "show_reasoning": true,
+        "reasoning": "Dor pré-cordial com irradiação ou sudorese são discriminadores de síndrome coronariana aguda. ECG precoce é essencial para diagnóstico.",
+        "override_allowed": true,
+        "log_override": true
+      },
+      "associated_task": "activate_priority_flow_chest_pain"
+    },
+    {
+      "guard_id": "hypoxemia_critical",
+      "name": "Hipoxemia Crítica",
+      "type": "predictive",
+      "description": "Alerta sobre saturação de oxigênio criticamente baixa",
+      "trigger": {
+        "condition": "oxygen_saturation < 85"
+      },
+      "action": {
+        "type": "suggest",
+        "message": "🫁 HIPOXEMIA CRÍTICA: SpO2 {oxygen_saturation}%. Considere oxigenoterapia imediata e investigação de causa (TEP, pneumonia, edema pulmonar).",
+        "show_reasoning": true,
+        "reasoning": "SpO2 <85% indica insuficiência respiratória grave com risco de hipóxia tecidual e disfunção orgânica.",
+        "priority": "critical",
+        "override_allowed": true,
+        "log_override": true
+      },
+      "auto_suggest": "oxygen_therapy"
+    },
+    {
+      "guard_id": "hypovolemic_shock_risk",
+      "name": "Risco de Choque Hipovolêmico",
+      "type": "predictive",
+      "description": "Detecta sinais de choque em pacientes com hemorragia",
+      "trigger": {
+        "condition": "(bleeding_present AND blood_pressure.systolic < 90) OR (heart_rate > 120 AND blood_pressure.systolic < 100)"
+      },
+      "action": {
+        "type": "suggest",
+        "message": "💉 RISCO DE CHOQUE: Sinais de hipovolemia detectados (PA {blood_pressure.systolic}/{blood_pressure.diastolic}, FC {heart_rate}). Considere acesso venoso calibroso e reposição volêmica.",
+        "show_reasoning": true,
+        "reasoning": "Taquicardia + hipotensão sugerem perda volêmica significativa. Reposição precoce reduz mortalidade.",
+        "override_allowed": true,
+        "log_override": true
+      }
+    },
+    {
+      "guard_id": "pediatric_fever_warning",
+      "name": "Alerta de Febre em Lactente",
+      "type": "predictive",
+      "description": "Identifica febre em menores de 3 meses (risco de infecção bacteriana grave)",
+      "trigger": {
+        "condition": "patient_age < 3_months AND temperature >= 38.0"
+      },
+      "action": {
+        "type": "suggest",
+        "message": "👶 LACTENTE FEBRIL: Menor de 3 meses com febre. Alto risco de infecção bacteriana grave. Investigação completa e possível internação.",
+        "show_reasoning": true,
+        "reasoning": "Febre em lactentes <3 meses requer investigação completa (hemograma, hemocultura, urina, LCR) devido ao risco de sepse neonatal.",
+        "priority": "high",
+        "override_allowed": true,
+        "log_override": true
+      }
+    },
+    {
+      "guard_id": "anticoagulated_patient_bleeding",
+      "name": "Sangramento em Anticoagulado",
+      "type": "predictive",
+      "description": "Alerta sobre sangramento em pacientes em uso de anticoagulantes",
+      "trigger": {
+        "condition": "bleeding_present AND medications_in_use CONTAINS ['varfarina', 'rivaroxabana', 'apixabana', 'dabigatrana', 'AAS', 'clopidogrel']"
+      },
+      "action": {
+        "type": "suggest",
+        "message": "💊 ANTICOAGULADO COM SANGRAMENTO: Paciente em uso de {anticoagulant_medication}. Avaliar necessidade de reversão e INR/coagulograma urgente.",
+        "show_reasoning": true,
+        "reasoning": "Sangramentos em pacientes anticoagulados podem ser graves. Reversão pode ser necessária (vitamina K, PFC, concentrados de fator).",
+        "override_allowed": true,
+        "log_override": true
+      }
+    },
+    {
+      "guard_id": "time_limit_approaching",
+      "name": "Prazo de Atendimento Próximo",
+      "type": "predictive",
+      "description": "Notifica quando 80% do prazo máximo de atendimento foi atingido",
+      "trigger": {
+        "condition": "time_in_queue >= (priority_time_limit * 0.8)"
+      },
+      "action": {
+        "type": "suggest",
+        "message": "⏰ ATENÇÃO: Paciente {patient_name} classificado como {priority_color} há {time_in_queue}. Prazo máximo: {priority_time_limit}. Tempo restante: {remaining_time}.",
+        "show_reasoning": true,
+        "reasoning": "Protocolo Manchester estabelece prazos máximos para atendimento por prioridade. Aproximação do limite requer ação.",
+        "notify": "queue_coordinator",
+        "override_allowed": false
+      }
+    },
+    {
+      "guard_id": "allergy_medication_conflict",
+      "name": "Conflito Alergia vs Medicação",
+      "type": "predictive",
+      "description": "Previne prescrição de medicamentos com alergia conhecida",
+      "trigger": {
+        "condition": "prescribed_medication IN allergy_history"
+      },
+      "action": {
+        "type": "block",
+        "message": "🚫 ALERTA DE ALERGIA: Paciente possui alergia documentada a {medication}. Prescrição bloqueada. Selecione alternativa terapêutica.",
+        "show_reasoning": true,
+        "reasoning": "Prescrição de medicamento com alergia conhecida pode causar reação anafilática grave.",
+        "priority": "critical",
+        "override_allowed": true,
+        "override_requires": "senior_physician_justification",
+        "log_override": true
+      }
+    },
+    {
+      "guard_id": "high_load_adaptation",
+      "name": "Adaptação em Alta Demanda",
+      "type": "predictive",
+      "description": "Sugere relaxamento adaptativo de prazos durante superlotação",
+      "trigger": {
+        "condition": "queue_size > capacity * 1.5 AND wait_time_average > priority_time_limit"
+      },
+      "action": {
+        "type": "suggest",
+        "message": "🏥 ALTA DEMANDA: Serviço operando acima da capacidade ({occupancy_rate}%). Considere ativação de protocolos de crise e redistribuição de recursos.",
+        "show_reasoning": true,
+        "reasoning": "Sobrecarga do sistema pode comprometer atendimento. Protocolos adaptativos incluem: priorizar emergências, acionar reforço, considerar transferências.",
+        "notify": "emergency_coordinator",
+        "override_allowed": false
+      },
+      "adaptive_behavior": {
+        "relax_green_blue": "extend_time_limits_by_20_percent",
+        "prioritize_red_orange": true,
+        "activate_backup_staff": true
+      }
+    }
+  ],
+
+  "deadlines": [
+    {
+      "deadline_id": "red_immediate",
+      "name": "Atendimento Emergente (Vermelho)",
+      "priority": "RED",
+      "time_limit": "0m",
+      "description": "Atendimento imediato para risco de morte",
+      "adaptive": false,
+      "escalation": {
+        "if_delayed": "immediate_senior_notification",
+        "after": "2m"
+      },
+      "compliance_tracking": true
+    },
+    {
+      "deadline_id": "orange_10min",
+      "name": "Atendimento Muito Urgente (Laranja)",
+      "priority": "ORANGE",
+      "time_limit": "10m",
+      "description": "Atendimento em até 10 minutos para casos muito urgentes",
+      "adaptive": true,
+      "relaxes_to": "15m",
+      "relaxation_conditions": "queue_size > capacity * 1.3",
+      "escalation": {
+        "if_delayed": "notify_physician_coordinator",
+        "after": "12m"
+      },
+      "compliance_tracking": true
+    },
+    {
+      "deadline_id": "yellow_60min",
+      "name": "Atendimento Urgente (Amarelo)",
+      "priority": "YELLOW",
+      "time_limit": "60m",
+      "description": "Atendimento em até 1 hora para casos urgentes",
+      "adaptive": true,
+      "relaxes_to": "90m",
+      "relaxation_conditions": "queue_size > capacity * 1.5",
+      "escalation": {
+        "if_delayed": "queue_coordinator_review",
+        "after": "75m"
+      },
+      "compliance_tracking": true
+    },
+    {
+      "deadline_id": "green_120min",
+      "name": "Atendimento Pouco Urgente (Verde)",
+      "priority": "GREEN",
+      "time_limit": "120m",
+      "description": "Atendimento em até 2 horas para casos menos urgentes",
+      "adaptive": true,
+      "relaxes_to": "180m",
+      "relaxation_conditions": "queue_size > capacity * 1.5",
+      "escalation": {
+        "if_delayed": "patient_notification",
+        "after": "150m"
+      },
+      "compliance_tracking": true
+    },
+    {
+      "deadline_id": "blue_240min",
+      "name": "Atendimento Não Urgente (Azul)",
+      "priority": "BLUE",
+      "time_limit": "240m",
+      "description": "Atendimento em até 4 horas para casos não urgentes",
+      "adaptive": true,
+      "relaxes_to": "360m",
+      "relaxation_conditions": "queue_size > capacity * 1.5",
+      "escalation": {
+        "if_delayed": "suggest_ubs_referral",
+        "after": "300m"
+      },
+      "compliance_tracking": true
+    },
+    {
+      "deadline_id": "ecg_chest_pain",
+      "name": "ECG em Dor Torácica",
+      "task_related": "activate_priority_flow_chest_pain",
+      "time_limit": "10m",
+      "description": "Realização de ECG em até 10 minutos para dor torácica suspeita",
+      "adaptive": false,
+      "escalation": {
+        "if_delayed": "cardiology_immediate_alert",
+        "after": "12m"
+      },
+      "compliance_tracking": true,
+      "regulatory_requirement": true
+    },
+    {
+      "deadline_id": "ct_stroke",
+      "name": "TC de Crânio em AVC",
+      "task_related": "activate_priority_flow_stroke",
+      "time_limit": "25m",
+      "description": "Tomografia de crânio em até 25 minutos em suspeita de AVC",
+      "adaptive": false,
+      "escalation": {
+        "if_delayed": "neurology_emergency_escalation",
+        "after": "30m"
+      },
+      "compliance_tracking": true,
+      "regulatory_requirement": true
+    },
+    {
+      "deadline_id": "door_to_needle_stroke",
+      "name": "Porta-Agulha AVC",
+      "task_related": "activate_priority_flow_stroke",
+      "time_limit": "60m",
+      "description": "Início de trombólise em até 60 minutos da chegada (door-to-needle)",
+      "adaptive": false,
+      "escalation": {
+        "if_delayed": "critical_incident_report",
+        "after": "65m"
+      },
+      "compliance_tracking": true,
+      "regulatory_requirement": true,
+      "quality_indicator": true
+    },
+    {
+      "deadline_id": "sepsis_bundle_1h",
+      "name": "Bundle Sepse 1 Hora",
+      "task_related": "activate_priority_flow_sepsis",
+      "time_limit": "60m",
+      "description": "Conclusão do bundle sepse (lactato, hemoculturas, antibiótico, fluidos) em 1 hora",
+      "adaptive": false,
+      "components": [
+        {"item": "lactate_collection", "time": "30m"},
+        {"item": "blood_cultures", "time": "45m"},
+        {"item": "antibiotic_administration", "time": "60m"},
+        {"item": "fluid_resuscitation_30ml_kg", "time": "60m"}
+      ],
+      "escalation": {
+        "if_delayed": "sepsis_coordinator_alert",
+        "after": "70m"
+      },
+      "compliance_tracking": true,
+      "regulatory_requirement": true,
+      "quality_indicator": true
+    },
+    {
+      "deadline_id": "trauma_primary_survey",
+      "name": "Avaliação Primária ATLS",
+      "task_related": "activate_priority_flow_trauma",
+      "time_limit": "5m",
+      "description": "Completar avaliação primária (ABCDE) em trauma grave",
+      "adaptive": false,
+      "escalation": {
+        "if_delayed": "trauma_team_leader_notification",
+        "after": "7m"
+      },
+      "compliance_tracking": true
+    }
+  ],
+
+  "rewards": [
+    {
+      "reward_id": "successful_triage_completion",
+      "name": "Triagem Completa e Precisa",
+      "weight": 1.0,
+      "description": "Recompensa por conclusão de triagem com todos os dados necessários coletados",
+      "criteria": {
+        "all_required_slots_filled": true,
+        "classification_time": "< 10m",
+        "no_errors": true
+      },
+      "value": 10
+    },
+    {
+      "reward_id": "deadline_adherence_red",
+      "name": "Atendimento Imediato Cumprido",
+      "weight": 3.0,
+      "description": "Paciente vermelho atendido imediatamente",
+      "criteria": {
+        "priority": "RED",
+        "time_to_physician": "<= 2m"
+      },
+      "value": 50
+    },
+    {
+      "reward_id": "deadline_adherence_orange",
+      "name": "Prazo Laranja Cumprido",
+      "weight": 2.5,
+      "description": "Paciente laranja atendido em até 10 minutos",
+      "criteria": {
+        "priority": "ORANGE",
+        "time_to_physician": "<= 10m"
+      },
+      "value": 40
+    },
+    {
+      "reward_id": "deadline_adherence_yellow",
+      "name": "Prazo Amarelo Cumprido",
+      "weight": 2.0,
+      "description": "Paciente amarelo atendido em até 60 minutos",
+      "criteria": {
+        "priority": "YELLOW",
+        "time_to_physician": "<= 60m"
+      },
+      "value": 30
+    },
+    {
+      "reward_id": "deadline_adherence_green",
+      "name": "Prazo Verde Cumprido",
+      "weight": 1.5,
+      "description": "Paciente verde atendido em até 120 minutos",
+      "criteria": {
+        "priority": "GREEN",
+        "time_to_physician": "<= 120m"
+      },
+      "value": 20
+    },
+    {
+      "reward_id": "priority_flow_activation_chest_pain",
+      "name": "Protocolo Dor Torácica Ativado",
+      "weight": 2.5,
+      "description": "Protocolo prioritário de dor torácica corretamente ativado",
+      "criteria": {
+        "protocol": "chest_pain",
+        "ecg_time": "<= 10m",
+        "troponin_ordered": true
+      },
+      "value": 45
+    },
+    {
+      "reward_id": "priority_flow_activation_stroke",
+      "name": "Código AVC Ativado com Sucesso",
+      "weight": 3.0,
+      "description": "Protocolo AVC ativado dentro da janela terapêutica",
+      "criteria": {
+        "protocol": "stroke",
+        "within_thrombolysis_window": true,
+        "ct_time": "<= 25m",
+        "door_to_needle": "<= 60m"
+      },
+      "value": 60
+    },
+    {
+      "reward_id": "priority_flow_activation_sepsis",
+      "name": "Bundle Sepse Completado",
+      "weight": 3.0,
+      "description": "Bundle sepse de 1 hora completado integralmente",
+      "criteria": {
+        "protocol": "sepsis",
+        "lactate_collected": "<= 30m",
+        "cultures_collected": "<= 45m",
+        "antibiotic_given": "<= 60m",
+        "fluids_given": "<= 60m"
+      },
+      "value": 60
+    },
+    {
+      "reward_id": "early_deterioration_detection",
+      "name": "Detecção Precoce de Agravamento",
+      "weight": 2.0,
+      "description": "Reclassificação apropriada de paciente que apresentou piora clínica",
+      "criteria": {
+        "reclassification_performed": true,
+        "before_critical_event": true,
+        "time_to_detection": "< 15m"
+      },
+      "value": 35
+    },
+    {
+      "reward_id": "guard_suggestion_followed",
+      "name": "Sugestão de Guard Seguida",
+      "weight": 1.5,
+      "description": "Profissional seguiu sugestão preventiva do sistema de guards",
+      "criteria": {
+        "guard_triggered": true,
+        "suggestion_accepted": true,
+        "outcome_positive": true
+      },
+      "value": 25
+    },
+    {
+      "reward_id": "pattern_recognition_sepsis",
+      "name": "Reconhecimento de Padrão: Sepse",
+      "weight": 2.0,
+      "description": "Sistema detectou padrão de sepse antes da equipe",
+      "criteria": {
+        "pattern_type": "sepsis",
+        "detected_before_diagnosis": true,
+        "confirmed_diagnosis": true
+      },
+      "value": 40,
+      "feeds_rre": true
+    },
+    {
+      "reward_id": "pattern_recognition_mi",
+      "name": "Reconhecimento de Padrão: IAM",
+      "weight": 2.0,
+      "description": "Sistema identificou padrão sugestivo de infarto",
+      "criteria": {
+        "pattern_type": "myocardial_infarction",
+        "detected_before_diagnosis": true,
+        "confirmed_diagnosis": true
+      },
+      "value": 40,
+      "feeds_rre": true
+    },
+    {
+      "reward_id": "efficient_queue_management",
+      "name": "Gestão Eficiente da Fila",
+      "weight": 1.5,
+      "description": "Tempo médio de espera abaixo da média histórica",
+      "criteria": {
+        "average_wait_time": "< historical_average * 0.9",
+        "no_deadline_violations": true,
+        "shift_duration": "complete"
+      },
+      "value": 30
+    },
+    {
+      "reward_id": "complete_audit_trail",
+      "name": "Trilha de Auditoria Completa",
+      "weight": 1.0,
+      "description": "Registro completo e correto de toda a triagem para auditoria",
+      "criteria": {
+        "all_timestamps_recorded": true,
+        "classification_justification": true,
+        "nurse_identification": true,
+        "vital_signs_documented": true
+      },
+      "value": 15
+    },
+    {
+      "reward_id": "negative_deadline_violation",
+      "name": "Penalidade: Violação de Prazo Crítico",
+      "weight": -3.0,
+      "description": "Penalização por não atendimento de prazo em prioridade crítica",
+      "criteria": {
+        "priority": "RED",
+        "deadline_exceeded": true
+      },
+      "value": -100
+    },
+    {
+      "reward_id": "negative_missing_priority_activation",
+      "name": "Penalidade: Protocolo Prioritário Não Ativado",
+      "weight": -2.5,
+      "description": "Penalização por não ativação de protocolo prioritário obrigatório",
+      "criteria": {
+        "priority_condition_present": true,
+        "protocol_not_activated": true,
+        "adverse_outcome": true
+      },
+      "value": -80
+    }
+  ],
+
+  "evidence": {
+    "audit_trail": {
+      "enabled": true,
+      "storage": "patient_local_encrypted",
+      "retention_period": "20_years",
+      "compliance": "LGPD",
+      "events_tracked": [
+        "triage_start",
+        "vital_signs_collection",
+        "flowchart_selection",
+        "priority_assignment",
+        "wristband_application",
+        "queue_entry",
+        "physician_call",
+        "physician_start_care",
+        "reclassification_events",
+        "guard_triggers",
+        "guard_overrides",
+        "priority_protocol_activations",
+        "deadline_violations",
+        "care_completion"
+      ],
+      "data_captured": {
+        "timestamp": "ISO8601",
+        "actor": "user_id + role",
+        "action": "event_type",
+        "context": "relevant_slots",
+        "reasoning": "classification_logic",
+        "outcome": "result"
+      },
+      "fhir_compliance": {
+        "resource_type": "AuditEvent",
+        "profile": "http://hl7.org/fhir/StructureDefinition/AuditEvent",
+        "mapping": {
+          "event": "triage_classification",
+          "agent": "nurse_classifier",
+          "source": "manchester_pir_system",
+          "entity": "patient"
+        }
+      }
+    },
+    "learning_configuration": {
+      "enabled": true,
+      "feeds_rre": true,
+      "aggregation_level": "system_wide",
+      "phi_protection": "complete_deidentification",
+      "patterns_tracked": [
+        "chief_complaint_to_diagnosis_correlation",
+        "vital_signs_patterns_by_condition",
+        "time_to_treatment_by_priority",
+        "reclassification_triggers",
+        "guard_effectiveness",
+        "seasonal_demand_patterns",
+        "flowchart_accuracy",
+        "discriminator_predictive_value"
+      ],
+      "learning_outputs": {
+        "pattern_library": "aggregated_clinical_patterns",
+        "predictive_models": "risk_stratification_improvements",
+        "protocol_optimization": "discriminator_weight_adjustments",
+        "quality_metrics": "compliance_dashboards"
+      },
+      "privacy_guarantees": {
+        "no_individual_identification": true,
+        "differential_privacy": true,
+        "minimum_cohort_size": 100,
+        "geographic_aggregation": "municipal_level"
+      }
+    },
+    "quality_indicators": {
+      "tracked_metrics": [
+        {
+          "indicator": "classification_time_median",
+          "target": "< 5m",
+          "unit": "minutes"
+        },
+        {
+          "indicator": "red_immediate_care_rate",
+          "target": ">= 95%",
+          "unit": "percent"
+        },
+        {
+          "indicator": "orange_10min_compliance",
+          "target": ">= 90%",
+          "unit": "percent"
+        },
+        {
+          "indicator": "yellow_60min_compliance",
+          "target": ">= 85%",
+          "unit": "percent"
+        },
+        {
+          "indicator": "door_to_ecg_chest_pain",
+          "target": "<= 10m",
+          "unit": "minutes"
+        },
+        {
+          "indicator": "door_to_needle_stroke",
+          "target": "<= 60m",
+          "unit": "minutes"
+        },
+        {
+          "indicator": "sepsis_bundle_1h_compliance",
+          "target": ">= 80%",
+          "unit": "percent"
+        },
+        {
+          "indicator": "reclassification_rate",
+          "target": "< 5%",
+          "unit": "percent"
+        },
+        {
+          "indicator": "undertriage_rate",
+          "target": "< 2%",
+          "unit": "percent"
+        },
+        {
+          "indicator": "overtriage_rate",
+          "target": "< 10%",
+          "unit": "percent"
+        }
+      ],
+      "reporting_frequency": "daily",
+      "dashboard_url": "/quality-dashboard/manchester"
+    },
+    "regulatory_compliance": {
+      "portaria_sms_82_2024": {
+        "classification_recording": "mandatory",
+        "nurse_certification": "SMCR_2nd_edition_required",
+        "equipment_requirements": [
+          "stethoscope",
+          "thermometer",
+          "sphygmomanometer",
+          "glucometer",
+          "oximeter",
+          "clock",
+          "colored_wristbands"
+        ],
+        "implementation_deadline": "120_days_from_march_13_2024",
+        "manual_or_electronic": "both_accepted"
+      },
+      "lgpd_compliance": {
+        "legal_basis": "legitimate_interest_healthcare",
+        "patient_consent": "implicit_by_seeking_care",
+        "data_minimization": true,
+        "purpose_limitation": "emergency_care_only",
+        "retention_limits": "20_years_medical_records",
+        "right_to_access": true,
+        "right_to_rectification": true,
+        "data_portability": "FHIR_export_available"
+      }
+    }
+  },
+
+  "integration_points": {
+    "roe_runtime_orchestrator": {
+      "endpoint": "/api/roe/execute-workflow",
+      "protocol": "https",
+      "authentication": "mTLS",
+      "payload": "pir_json + patient_context",
+      "response": "execution_trace + outcomes"
+    },
+    "rre_rhizomatic_reasoning": {
+      "endpoint": "/api/rre/submit-patterns",
+      "protocol": "https",
+      "authentication": "api_key",
+      "payload": "deidentified_patterns + rewards",
+      "frequency": "hourly_batch"
+    },
+    "rms_memory_system": {
+      "endpoint": "/api/rms/store-timeline",
+      "protocol": "https",
+      "authentication": "patient_encrypted_key",
+      "payload": "patient_timeline_encrypted",
+      "storage": "distributed_edge"
+    },
+    "medical_records_system": {
+      "endpoint": "/api/emr/triage-record",
+      "protocol": "https",
+      "authentication": "oauth2",
+      "payload": "fhir_observation_bundle",
+      "required": true
+    },
+    "queue_management_system": {
+      "endpoint": "/api/queue/update",
+      "protocol": "websocket",
+      "authentication": "jwt",
+      "payload": "queue_position + priority + eta",
+      "real_time": true
+    }
+  },
+
+  "hot_reload_configuration": {
+    "enabled": true,
+    "check_interval": "1h",
+    "source": "legislative_monitor_api",
+    "trigger_conditions": [
+      "new_portaria_published",
+      "protocol_update_released",
+      "discriminator_weights_adjusted"
+    ],
+    "rollback_on_error": true,
+    "validation_before_apply": true,
+    "notification": "system_admin + clinical_director"
+  }
+}

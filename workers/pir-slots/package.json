@@ -1,0 +1,35 @@
+{
+  "name": "healthos-slot-extractor",
+  "version": "1.0.0",
+  "description": "HealthOS AI-Native Slot Extractor - Sistema Operacional de Saúde baseado em LLMs",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "build": "tsc",
+    "test": "vitest",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "healthos",
+    "ai-native",
+    "manchester-triage",
+    "cloudflare-workers",
+    "llm",
+    "stt",
+    "rhizomatic",
+    "healthcare"
+  ],
+  "author": "Voither Team",
+  "license": "MIT",
+  "dependencies": {
+    "@cloudflare/ai": "^1.0.50",
+    "@cloudflare/workers-types": "^4.20240919.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "wrangler": "^3.78.0",
+    "vitest": "^1.0.4"
+  }
+}

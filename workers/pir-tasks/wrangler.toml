@@ -1,0 +1,22 @@
+# Cloudflare Worker Configuration - PIR Tasks Executor
+
+name = "pir-tasks-executor"
+main = "src/index.ts"
+compatibility_date = "2024-03-01"
+workers_dev = true
+
+# Account ID
+account_id = "YOUR_CLOUDFLARE_ACCOUNT_ID"
+
+# Workers AI binding
+[ai]
+binding = "AI"
+
+# Environment variables
+[vars]
+ENVIRONMENT = "production"
+LOG_LEVEL = "info"
+
+# Limites
+[limits]
+cpu_ms = 50000  # Execução de tasks pode ser intensiva
