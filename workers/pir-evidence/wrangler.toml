@@ -1,0 +1,13 @@
+name = "pir-evidence-executor"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+# Cloudflare Workers AI binding
+[ai]
+binding = "AI"
+
+# KV namespace for encrypted evidence storage
+[[kv_namespaces]]
+binding = "EVIDENCE_KV"
+id = "your_kv_namespace_id"
+preview_id = "your_preview_kv_namespace_id"
