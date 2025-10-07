@@ -1,0 +1,30 @@
+{
+  "name": "pir-evidence-executor",
+  "version": "1.0.0",
+  "description": "PIR Manchester SP - Sistema de Evidence (FHIR audit trail + LGPD) usando Cloudflare Workers AI",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "keywords": [
+    "pir",
+    "voither",
+    "manchester",
+    "triage",
+    "evidence",
+    "audit",
+    "fhir",
+    "lgpd",
+    "cloudflare-workers",
+    "workers-ai"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241127.0",
+    "typescript": "^5.7.2",
+    "wrangler": "^3.94.0"
+  }
+}

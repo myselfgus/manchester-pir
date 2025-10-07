@@ -1,0 +1,7 @@
+name = "pir-deadlines-executor"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+# Cloudflare Workers AI binding
+[ai]
+binding = "AI"
